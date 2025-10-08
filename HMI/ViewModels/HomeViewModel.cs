@@ -1,34 +1,66 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using HMI.Services;
 using System.Threading.Tasks;
 
 namespace HMI.ViewModels
 {
     public partial class HomeViewModel : ObservableObject
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly FanService _fanService;
 
-
-        public HomeViewModel(IServiceProvider serviceProvider)
+        public HomeViewModel(FanService fanService)
         {
-            _serviceProvider = serviceProvider;
+            _fanService = fanService;
         }
 
+        [ObservableProperty]
+        private bool _isRunning;
 
         [ObservableProperty]
-        private string _title = "Home";
+        private decimal _speed;
+
+        [ObservableProperty]
+        private string _buttonText = "Start";
 
         [RelayCommand]
-        private void NavigateToAlert()
+        private async Task ToggleFanAsync()
         {
-            var mainViewModel = _serviceProvider.GetRequiredService<MainViewModel>();
-            mainViewModel.CurrentViewModel = _serviceProvider.GetRequiredService<AlertViewModel>();
+            if (IsRunning)
+            {
+                await _fanService.StopFanAsync();
+                IsRunning = false;
+                ButtonText = "Start";
+            }
+            else
+            {
+                await _fanService.StartFanAsync();
+                IsRunning = true;
+                ButtonText = "Stop";
+            }
+        }
 
+        partial void OnSpeedChanged(decimal value)
+        {
+            // Kör kommandot när Speed ändras
+            _ = SetSpeedAsync();
+        }
+
+        [RelayCommand]
+        private async Task SetSpeedAsync()
+        {
+            await _fanService.SetSpeedAsync(Speed);
+        }
+
+        [RelayCommand]
+        private async Task RefreshStatusAsync()
+        {
+            var status = await _fanService.GetStatusAsync();
+            if (status != null)
+            {
+                IsRunning = status.IsRunning;
+                Speed = status.CurrentSpeed;
+            }
         }
     }
 }

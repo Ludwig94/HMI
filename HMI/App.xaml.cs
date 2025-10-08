@@ -1,38 +1,45 @@
-﻿using HMI.ViewModels;
-using Microsoft.Extensions.Configuration;
+﻿using HMI.Services;
+using HMI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.Windows;
 
-namespace HMI;
-
-public partial class App : Application
+namespace HMI
 {
-    private IHost? _host;
-
- public App()
+    public partial class App : Application
     {
-        var builder = Host.CreateApplicationBuilder();
+        private IHost? _host;
 
-        builder.Services.AddSingleton<MainViewModel>();
-        builder.Services.AddTransient<AlertViewModel>();
-        builder.Services.AddTransient<HomeViewModel>();
+        public App()
+        {
+            var builder = Host.CreateApplicationBuilder();
 
-        builder.Services.AddSingleton<MainWindow>();
-        _host = builder.Build();
-        
+            // Register services
+            builder.Services.AddSingleton<FanService>();
 
-    }
+            // Register ViewModels as singletons
+            builder.Services.AddSingleton<MainViewModel>();
+            builder.Services.AddSingleton<HomeViewModel>();
 
-    protected override void OnStartup(StartupEventArgs e)
-    {
-        var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
-    }
+            // Register MainWindow
+            builder.Services.AddSingleton<MainWindow>();
 
-    protected override void OnExit(ExitEventArgs e)
-    {
-        _host?.Dispose();
-        base.OnExit(e);
+            _host = builder.Build();
+        }
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
+            mainWindow.DataContext = _host!.Services.GetRequiredService<MainViewModel>();
+            mainWindow.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _host?.Dispose();
+            base.OnExit(e);
+        }
     }
 }
